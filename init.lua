@@ -1,14 +1,3 @@
--- REQUIRED LANGUAGE SERVERS INSTALL
--- sudo apt install npm
--- sudo apt install python3
--- sudo apt install pipx
--- npm i -g typescript-language-server typescript
--- npm i -g vscode-langservers-extracted      
--- pipx install pyright
--- sudo apt install rust-analyzer
--- go install golang.org/x/tools/gopls@latest
--- npm install -g vscode-langservers-extracted
-
 -- Bootstrap lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -26,25 +15,22 @@ require("lazy").setup({
   { "hrsh7th/cmp-nvim-lsp" },
   { "hrsh7th/cmp-buffer" },
   { "hrsh7th/cmp-path" },
+  { "saadparwaiz1/cmp_luasnip" },  -- Added missing luasnip source
   { "L3MON4D3/LuaSnip" },
   { "neovim/nvim-lspconfig" },
-  { "windwp/nvim-autopairs", event = "InsertEnter", config = true },
-  { "windwp/nvim-ts-autotag", event = "InsertEnter", dependencies = { "nvim-treesitter/nvim-treesitter" } },
-
-
+  -- Mason plugins
+  { "williamboman/mason.nvim" },
+  { "williamboman/mason-lspconfig.nvim" },
 })
 
 -- Basic settings
 vim.opt.termguicolors = true
-vim.opt.relativenumber = true
-vim.opt.number = true
 vim.opt.cursorline = true
---vim.opt.clipboard = "unnamedplus"
-vim.api.nvim_set_option("clipboard", "unnamed")
+vim.opt.relativenumber = true
+vim.opt.clipboard = "unnamedplus"
 vim.cmd.colorscheme("habamax")
 vim.cmd("set ls=2")
 vim.cmd("set cmdheight=0")
-vim.cmd("TransparentEnable")
 vim.g.loaded_matchparen = 2
 vim.opt.expandtab = true
 vim.opt.shiftwidth = 2
@@ -52,7 +38,7 @@ vim.opt.tabstop = 2
 vim.opt.softtabstop = 2
 vim.o.updatetime = 25
 
--- require("transparent").setup({ enable = true })
+require("transparent").setup({ enable = true })
 
 -- Diagnostics UI
 vim.diagnostic.config({
@@ -64,19 +50,16 @@ vim.diagnostic.config({
 -- Keymaps
 local keymap = vim.keymap.set
 local opts = { noremap = true, silent = true }
-keymap('v', '<C-a>', '"+y', opts)
+keymap('v', '<C-s>', '"+y', opts)
 keymap('n', '<C-n>', ':NvimTreeToggle<CR>', opts)
 keymap('n', '<S-l>', ':BufferLineCycleNext<CR>', opts)
 keymap('n', '<S-h>', ':BufferLineCyclePrev<CR>', opts)
 
 -- Treesitter
 require("nvim-treesitter.configs").setup({
-  ensure_installed = { "rust", "cpp", "html", "css" },
+  ensure_installed = { "rust", "cpp", "python", "go" },
   highlight = { enable = true },
-  --autotag = { enable = true }, 
 })
-
-require('nvim-ts-autotag').setup()
 
 -- UI Plugins
 require("nvim-tree").setup({
@@ -93,7 +76,29 @@ require("bufferline").setup({
   },
 })
 
--- CMP
+-- Mason Setup
+require("mason").setup({
+  ui = {
+    icons = {
+      package_installed = "✓",
+      package_pending = "➜",
+      package_uninstalled = "✗"
+    }
+  }
+})
+
+-- Mason LSP Config
+require("mason-lspconfig").setup({
+  ensure_installed = {
+    "gopls",
+    "clangd", 
+    "ruff",
+    "rust_analyzer",
+  },
+  automatic_installation = true,
+})
+
+-- CMP Setup
 local cmp = require("cmp")
 local luasnip = require("luasnip")
 
@@ -119,12 +124,9 @@ cmp.setup({
   }),
 })
 
-
--- LSP
--- Updated LSP Setup
+-- LSP Setup
 local lspconfig = require("lspconfig")
 local capabilities = require("cmp_nvim_lsp").default_capabilities(vim.lsp.protocol.make_client_capabilities())
-
 local servers = {
   gopls = {},
   clangd = {
@@ -149,9 +151,7 @@ local servers = {
     },
   },
 }
-
 for name, config in pairs(servers) do
   config.capabilities = capabilities
   lspconfig[name].setup(config)
 end
-
